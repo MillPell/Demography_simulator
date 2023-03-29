@@ -12,14 +12,20 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import re
+
+from matplotlib import rcParams
+import matplotlib.animation as animation
 
 # Important Data
-Country = 'Spain'
-birth_rate = 1.2
+Country = 'China'
+birth_rate = 1.28
 start_year = 2021
 end_year = 2100
 
+histo_bin = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-99', '100+']    
 graph_bool = True
+option_graph = 1
 
 def excel_to_csv_converter():
     """
@@ -250,10 +256,86 @@ def next_year_dataframe(year,age_repartition_df):
 
     
 
-def plot_graphs(graph_df, option):
+def init_histo_df():
     print("Function to be coded")
     
+    
+    #Creation of a dataframe containing the population in age bins
+    low_val = []
+    high_val = []
+    for i in range(0, len(histo_bin)):
+        low_val +=re.findall("^(\d+).", histo_bin[i])
+        high_val +=re.findall("[0-9.]+$", histo_bin[i])
+    
+    high_val += ['101']
+   
+    histo_df = pd.DataFrame({'bins' : histo_bin, 'low_val' : low_val, 'high_val' : high_val})
+    
+    return histo_df
 
+def histo_df_update(data_df, current_year,histo_df):  
+    
+    histo_df["bin_values_" + str(current_year)] = 0
+    histo_df = histo_df.astype({'low_val':'int','high_val':'int'})
+    
+    for j in range(0, len(data_df.index)):
+        for k in range(0, len(histo_df.index)):
+
+            
+            if int(data_df['Age'].values[j]) >= histo_df['low_val'].values[k] and int(data_df['Age'].values[j]) <= histo_df['high_val'].values[k]:
+                
+                histo_df['bin_values_' + str(current_year)].values[k] += data_df[str(current_year)].values[j]
+                
+    histo_df['bin_values_' + str(current_year)] = histo_df['bin_values_' + str(current_year)].map(lambda pop: pop/1000000)
+    
+    return histo_df
+    
+def plot_graphs(frame):    
+    #Plot the population pyramid graph
+    
+    
+    current_year = frame + start_year
+    #Clear current plot
+    plt.cla()
+    
+
+    ax.barh(histo_df["bins"], histo_df["bin_values_" + str(current_year)],color = 'indianred' , edgecolor="white", linewidth=0.7)
+    
+    
+    #Compute the max value of histo_dif as max value for the y axis
+    max_histo_df = histo_df.copy()
+    max_histo_df = max_histo_df.drop(columns = ['bins', 'low_val', 'high_val'])
+    max_xaxis = round(max(max_histo_df.max(numeric_only=True))+1)
+    plt.xlim(0.,max_xaxis)
+    
+    #Axis 
+    plt.ylabel('Age', color = 'Black', alpha = 0.75, fontsize=18)
+    plt.xlabel('million people', color = 'Black', alpha = 0.75, fontsize=18)
+    plt.yticks(fontsize=16) 
+    plt.xticks(fontsize=16)
+    
+    #First graph Title
+    plt.title('Population pyramid in ' + Country,fontsize = 22, color = 'Black', alpha = 0.75,  fontweight="bold") 
+        
+    
+    #Textbox
+    plt.text(0.9, 0.9,  'Year: ' + str(current_year), fontsize=18, color='black'\
+             ,ha='center', va='center', alpha = 0.75, transform=ax.transAxes)
+    tot_pop = round(histo_df["bin_values_" +str(current_year)].sum(),2)
+    plt.text(0.9, 0.85,  'Population: ' + str(tot_pop)\
+             + ' millions', fontsize=18, color='black',ha='center', \
+                 va='center', alpha = 0.75, transform=ax.transAxes)
+        
+        
+        
+    # remove the frame of the chart
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    return plt
+
+    
+ 
 ######Future __main__function#####
 
 
@@ -263,17 +345,32 @@ Final_age_repartition_df = first_dataframe_creation(Country, start_year)
 #compute the death rates data 
 death_rates = compute_death_rates()
 
+histo_df = init_histo_df()
+
+
+
 
 for i in range(start_year, end_year):
     
     print('Year: ' + str(i))
     
+    #update the dataframe for this year
     next_year_dataframe(i, Final_age_repartition_df)
     
-     
-    
+    #update the histogram dataframe for this year
+    histo_df = histo_df_update(Final_age_repartition_df, i,histo_df)
+        
     print('Population: ' + str(Final_age_repartition_df[str(i)].sum()))
     
-print(Final_age_repartition_df)
+histo_df.to_csv ('Results_files/Results_data_file_per_agegroup.csv', index = None, header=True)
 Final_age_repartition_df.to_csv ('Results_files/Results_data_file.csv', index = None, header=True)
+
+if graph_bool:
+    
+    fig = plt.figure(figsize=(12, 8))
+    ax = plt.axes()
+    
+    a = animation.FuncAnimation(fig, plot_graphs, frames= end_year - start_year, interval = 20)
+    
+    a.save('Results_files/Age_pyramid.gif', writer='writergif', fps=2)
     
