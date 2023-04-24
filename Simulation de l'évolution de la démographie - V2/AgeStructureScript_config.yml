@@ -1,0 +1,29 @@
+Country : 'China'
+
+#Date option
+start_year : 2021
+end_year : 2200
+
+#Birth rate data
+    # Fixed for a fix data, fill the birth_rate directly
+    #Fixed_age_specific for using the world bank data about age specifice birth rate
+    #The birth_rate_evol_coef is the applied change modification of the birth rate per year in percent
+
+birth_rate_option: Fixed_age_specific
+birth_rate : 1.8
+birth_rate_string : []
+birth_rate_evol_coef: -0.02
+
+#Death rate data
+death_rate_coef_65: 2
+death_rate_coef_85: 25
+death_rate_99: 0.35
+death_rate_100: 0.45
+
+#Emigration data
+emigration_rate : -0.0025
+
+
+#Graph option
+histo_bin : ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-99', '100+']    
+graph_bool : True
